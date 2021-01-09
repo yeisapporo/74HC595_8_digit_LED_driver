@@ -1,14 +1,11 @@
-// sample application program for the driver.
-// minimum ntp clock
-
+/////////////////////////////////////////////////////////////
+// all you have to do is to include the header file below!
+/////////////////////////////////////////////////////////////
 #include "hc595led.h"
 
-#include <SPI.h>
 #include <Arduino.h>
 #include <FreeRTOS.h>
-
 #include <WiFi.h>
-#include <WebServer.h>
 
 void ntpTest(const char *srv) {
   configTime(9 * 3600, 0, srv);
@@ -19,7 +16,10 @@ void ntpTest(const char *srv) {
           timeInfo.tm_hour, timeInfo.tm_min, timeInfo.tm_sec);
 }
 
-HC595LED led = HC595LED(17, 21, 22);
+// declare the global instance. 
+HC595LED led = HC595LED(17,   // SCK
+                        21,   // DIO
+                        22);  // RCK
 
 void setup(void) {
   Serial.begin(115200);
@@ -33,22 +33,23 @@ void setup(void) {
 
   ntpTest("time.google.com");
 
-  Serial.println("Initialized");
+  Serial.println("set-up done.");
 }
 
-
 void loop() {
+  static char buf[20] = {0};
   struct tm timeInfo;
+
   getLocalTime(&timeInfo);
-
-  char buf[17] = {0};
-
-  sprintf(buf, "%02d:%02d:%02d", timeInfo.tm_hour, timeInfo.tm_min, timeInfo.tm_sec);
+  sprintf(buf, "Jp%02d.%02d.%02d", timeInfo.tm_hour, timeInfo.tm_min, timeInfo.tm_sec);
   led.setToLED(buf);
 
-  if(timeInfo.tm_hour == 3 && timeInfo.tm_min == 0 && timeInfo.tm_sec == 0) {
+  // once a day at 3:59:59,
+  if(timeInfo.tm_hour == 3 && timeInfo.tm_min == 59 && timeInfo.tm_sec == 59) {
+      // adjust time
+      led.setToLED("-adjust-");
       ntpTest("time.google.com");
-      delay(1);
+      delay(1000);
   } else {
     delay(500);
   }  
